@@ -1,10 +1,16 @@
 """
 nii2dcm runner
+
+Tom Roberts
+
+Updates by Bryan Luna for additional logging
 """
+
 from os.path import abspath
 
 import nibabel as nib
 import pydicom as pyd
+from nibabel.orientations import aff2axcodes
 
 import nii2dcm.nii
 import nii2dcm.svr
@@ -28,6 +34,10 @@ def run_nii2dcm(input_nii_path, output_dcm_path, dicom_type=None, ref_dicom_file
 
     # load NIfTI
     nii = nib.load(input_nii_path)
+
+    ax = aff2axcodes(nii.affine)  # tuple like ('L','A','S') etc., describes voxel axes in RAS+ world
+    print(f"nii2dcm: NIfTI axcodes (RAS+): {ax}")
+    print(f"NIfTI Shape: {nii.shape}")
 
     # get pixel data from NIfTI
     # TODO: create method in nii class
