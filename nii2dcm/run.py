@@ -3,7 +3,7 @@ nii2dcm runner
 
 Tom Roberts
 
-Updates by Bryan Luna for additional logging
+Updates by Bryan Luna for RAS canonicalization
 """
 
 from os.path import abspath
@@ -32,12 +32,20 @@ def run_nii2dcm(input_nii_path, output_dcm_path, dicom_type=None, ref_dicom_file
     :param ref_dicom: reference DICOM file for transferring Attributes
     """
 
-    # load NIfTI
-    nii = nib.load(input_nii_path)
+    # load original NIfTI and logs its orientation
+    orig_nii = nib.load(input_nii_path)
+    orig_ax = aff2axcodes(orig_nii.affine)  # e.g. ('L','A','S'), describes voxel axes
+    print(f"nii2dcm: Original NIfTI axcodes (RAS+): {orig_ax}")
+    print(f"nii2dcm: Original NIfTI shape: {orig_nii.shape}")
 
-    ax = aff2axcodes(nii.affine)  # tuple like ('L','A','S') etc., describes voxel axes in RAS+ world
-    print(f"nii2dcm: NIfTI axcodes (RAS+): {ax}")
-    print(f"NIfTI Shape: {nii.shape}")
+    # canonicalize to RAS orientation so downstream always sees RAS
+    canon_nii = nib.as_closest_canonical(orig_nii)
+    canon_ax = aff2axcodes(canon_nii.affine)
+    print(f"nii2dcm: Canonical NIfTI axcodes (RAS+): {canon_ax}")
+    print(f"nii2dcm: Canonical NIfTI shape: {canon_nii.shape}")
+
+    # use canonical NIfTI for geometry + pixels
+    nii = canon_nii
 
     # get pixel data from NIfTI
     # TODO: create method in nii class

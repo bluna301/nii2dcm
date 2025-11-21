@@ -22,10 +22,7 @@ def write_slice(dcm, img_data, slice_index, output_dir):
 
     output_filename = r'IM_%04d.dcm' % (slice_index + 1)  # begin filename from 1, e.g. IM_0001.dcm
 
-    # NIfTI stores columns as I, rows as J
-    # transpose: (I, J) -> (J, I) so DICOM rows=J, cols=I
-    # https://neurostars.org/t/direction-orientation-matrix-dicom-vs-nifti/14382/2#:~:text=There%20are%20two%20issues%20here
-    img_slice = img_data[:, :, slice_index].T
+    img_slice = img_data[:, :, slice_index]
 
     # Instance UID – unique to current slice
     dcm.ds.SOPInstanceUID = pyd.uid.generate_uid(None)

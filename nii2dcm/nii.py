@@ -3,8 +3,7 @@ Classes for manipulating NIfTI files
 
 Tom Roberts
 
-Updates by Bryan Luna with explicit RAS→LPS and I/J→row/col handling
-for DICOM geometry consistency.
+Updates by Bryan Luna with explicit NIfTI RAS → DICOM LPS for DICOM geometry consistency.
 """
 
 import numpy as np
@@ -15,6 +14,7 @@ class Nifti:
     def get_nii2dcm_parameters(nib_nii):
         """
         Get general NIfTI header parameters relevant for DICOM tag transferal.
+        Assumes NIfTI RAS orientation after canonicalization in run.py
         :nib_nii - NIfTI loaded with nibabel
         :nii_parameters - parameters to transfer to DICOM header
         """
@@ -27,7 +27,7 @@ class Nifti:
             return np.array([-v3[0], -v3[1], v3[2]], dtype=float)
         
         # ---------------------------
-        # Load NIfTI
+        # Load NIfTI - RAS orientation after canonicalization in run.py
         # ---------------------------
 
         nii_img = nib_nii.get_fdata()
@@ -41,7 +41,7 @@ class Nifti:
         pixdim = nii_hdr['pixdim']
 
         # NIfTI volume dimensions (I/J/K)
-        # dim[1] = nI (columns), dim[2] = nJ (rows), dim[3] = nK (slices)
+        # dim[1] = nI (rows), dim[2] = nJ (columns), dim[3] = nK (slices)
         # pixdim[1] = dI, pixdim[2] = dJ, pixdim[3] = dK (mm)
         if dim[4] == 1:
             # 3D volume
@@ -56,12 +56,13 @@ class Nifti:
             raise ValueError("Error: NIfTI is not 3-dimensional.")
         
         # DICOM volume dimensions (X/Y/Z)
-        # DICOM rows (X) = NIfTI columns (J)
-        # DICOM columns (Y) = NIfTI rows (I)
-        rows = nJ
-        cols = nI
-        row_spacing = dimJ
-        col_spacing = dimI
+        # DICOM rows (X) = NIfTI rows (I)
+        # DICOM columns (Y) = NIfTI columns (J)
+        # DICOM slices = NIfTI slices (Z)
+        rows = nI
+        cols = nJ
+        row_spacing = dimI
+        col_spacing = dimJ
 
         # Instances & Slice Spacing
         nInstances = nK*nF
@@ -95,7 +96,7 @@ class Nifti:
         A_ras = nib_nii.affine
 
         # NIfTI direction cosines in RAS normalized by voxel size
-        # 1st column (I) is columns; 2nd column (J) is rows
+        # 1st column (I) is rows; 2nd column (J) is columns
         dircosI_ras =  A_ras[:3, 0] / dimI
         dircosJ_ras =  A_ras[:3, 1] / dimJ
 
@@ -107,12 +108,13 @@ class Nifti:
         dircosI_lps = dircosI_lps / np.linalg.norm(dircosI_lps)
         dircosJ_lps = dircosJ_lps / np.linalg.norm(dircosJ_lps)
 
-        # DICOM rows are NIfTI J axis, DICOM columns are NIfTI I axis
+        # DICOM rows are NIfTI I axis, DICOM columns are NIfTI J axis
         dcm_rows = dircosJ_lps
         dcm_columns = dircosI_lps
 
         # ImageOrientationPatient
         # row value for x, y, z (respectively) followed by column value for x, y, z (respectively)
+        # https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html
         image_orientation_patient = [
             float(dcm_rows[0]), float(dcm_rows[1]), float(dcm_rows[2]),
             float(dcm_columns[0]), float(dcm_columns[1]), float(dcm_columns[2]),
