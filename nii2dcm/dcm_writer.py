@@ -1,9 +1,5 @@
 """
 creates a DICOM Series
-
-Tom Roberts
-
-Updates by Bryan Luna for correct NIfTI --> DICOM orientation mapping
 """
 
 import os
